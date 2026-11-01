@@ -74,9 +74,9 @@ td.gap{color:var(--warn)}
       </tr>
       <tr>
         <td class="k">评测与 badcase</td>
-        <td>P1 修复前后对比：拒答误判、答案混入代码块；rerank 覆盖率 77%→82%</td>
-        <td class="num">覆盖率 +5pp</td>
-        <td class="gap">badcase 只攒了 4 条，样本太少</td>
+        <td><a href="../p1/">P1</a> 每轮评测自动产出失败清单（最近一轮 6/30：召回漏 4、抽取失败 2）；<a href="../log/">决策日志</a> 记了修复前后</td>
+        <td class="num">6/30 失败 · 覆盖 +5pp</td>
+        <td class="gap">失败样例能自动产出，但样本仍是 30 条，需要扩到 100+</td>
       </tr>
       <tr>
         <td class="k">Prompt 与上下文</td>
@@ -92,15 +92,15 @@ td.gap{color:var(--warn)}
       </tr>
       <tr>
         <td class="k">成本与 ROI</td>
-        <td>P1 把计算搬进浏览器（0 次模型调用）；页面标注 P95 延迟</td>
+        <td><a href="../cost/">成本模型</a>：接 LLM 的单次/每月账单可调；现在这版 0 次调用</td>
         <td class="num">P95 6.9ms</td>
-        <td class="gap">没有真实 token 账单；缺“接 LLM 后多少钱”估算表</td>
+        <td class="gap">没有真实 token 账单，成本表里的单价是假设</td>
       </tr>
       <tr>
         <td class="k">协作与上线</td>
-        <td>四个页面部署到 GitHub Pages；P1 保留 <code>/api/*</code> 契约可换回服务端</td>
+        <td>五页部署到 GitHub Pages；<a href="../log/">决策日志</a> 记录每版取舍与回滚</td>
         <td class="num">4 页上线</td>
-        <td class="gap">没有跨团队评审记录、没有版本发布说明</td>
+        <td class="gap">没有跨团队评审记录；发布说明只有决策日志</td>
       </tr>
     </tbody>
   </table>

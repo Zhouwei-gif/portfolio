@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>成本模型 · 这套问答值不值得接 LLM</title>
+<style>
+:root{--bg:#070b14;--card:#111a2c;--line:#1f2c46;--fg:#e8eef9;--dim:#8fa1bd;--acc:#4fd1c5;--warn:#f6c177;--bad:#f87171}
+*{box-sizing:border-box}
+body{margin:0;background:radial-gradient(900px 500px at 12% -10%,#17253f 0,transparent 60%),var(--bg);color:var(--fg);font:15px/1.7 -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif}
+.wrap{max-width:960px;margin:0 auto;padding:28px 20px 64px}
+a{color:var(--acc);text-decoration:none}
+header{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:8px}
+.logo{width:42px;height:42px;border-radius:12px;background:linear-gradient(135deg,#4fd1c5,#8b7cf6);display:grid;place-items:center;font-weight:800;color:#08111f}
+h1{font-size:20px;margin:0}
+.sub{color:var(--dim);font-size:12.5px}
+.back{margin-left:auto;font-size:13px}
+.lead{color:#cfdcef;margin:14px 0 18px;font-size:14px}
+.grid{display:grid;grid-template-columns:1.05fr .95fr;gap:16px}
+@media(max-width:860px){.grid{grid-template-columns:1fr}}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px 18px}
+.card h2{font-size:13px;letter-spacing:.06em;color:var(--dim);text-transform:uppercase;margin:0 0 12px}
+.field{margin:12px 0}
+.field label{display:flex;justify-content:space-between;font-size:13px;color:#c7d5e8;margin-bottom:6px}
+.field label b{color:var(--acc);font-variant-numeric:tabular-nums}
+input[type=range]{width:100%;accent-color:#4fd1c5}
+select,input[type=number]{background:#0b1424;border:1px solid var(--line);color:var(--fg);border-radius:8px;padding:7px 9px;font-size:13px;width:100%}
+.big{font-size:30px;font-weight:800;letter-spacing:-.5px;margin:2px 0 0}
+.big small{font-size:13px;font-weight:500;color:var(--dim);margin-left:4px}
+.kv{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px dashed var(--line);font-size:13.5px;color:#cfdcef}
+.kv:last-child{border-bottom:0}
+.kv b{color:var(--acc);font-variant-numeric:tabular-nums}
+.warn{color:var(--warn)}
+.note{color:var(--dim);font-size:12.5px;margin-top:12px;line-height:1.7}
+table{width:100%;border-collapse:collapse;font-size:13px;margin-top:6px}
+th,td{padding:8px 9px;border-bottom:1px solid var(--line);text-align:left}
+th{color:var(--dim);font-weight:600;font-size:12px}
+tr:last-child td{border-bottom:0}
+.foot{color:var(--dim);font-size:12.5px;margin-top:24px;border-top:1px solid var(--line);padding-top:14px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="logo">¥</div>
+    <div>
+      <h1>成本模型</h1>
+      <div class="sub">这套问答如果接真模型，每次多少钱、每月多少钱、值不值</div>
+    </div>
+    <a class="back" href="../">← 返回作品集</a>
+  </header>
+
+  <p class="lead">现在这版是<b>抽取式</b>，零模型调用，所以成本是 0。但面试官一定会问：“真上线要多少钱？”这张表就是答案——你可以直接改参数，看结论怎么变。</p>
+
+  <div class="grid">
+    <div class="card">
+      <h2>一、输入假设</h2>
+      <div class="field">
+        <label>每天问答量 <b><span id="vq">1000</span> 次</b></label>
+        <input id="q" type="range" min="100" max="10000" step="100" value="1000" />
+      </div>
+      <div class="field">
+        <label>单价方案</label>
+        <select id="preset">
+          <option value="0.5,2">国产入门（输入 ¥0.5 / 输出 ¥2 每百万 tokens）</option>
+          <option value="2,8" selected>国产主流（输入 ¥2 / 输出 ¥8）</option>
+          <option value="7,28">国际旗舰（输入 ¥7 / 输出 ¥28）</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>单次输入 tokens（检索到的 5 个 chunk + 问题）<b><span id="vi">1200</span></b></label>
+        <input id="i" type="range" min="400" max="4000" step="100" value="1200" />
+      </div>
+      <div class="field">
+        <label>单次输出 tokens（答案 + 引用）<b><span id="vo">300</span></b></label>
+        <input id="o" type="range" min="100" max="1200" step="50" value="300" />
+      </div>
+      <div class="note">价格是可改的假设，不写死结论；换模型、换上下文长度，右侧数字会跟着变。</div>
+    </div>
+
+    <div class="card">
+      <h2>二、结论</h2>
+      <div class="big" id="per">¥0.0000 <small>/ 次</small></div>
+      <div class="kv"><span>每天成本</span><b id="day">¥0</b></div>
+      <div class="kv"><span>每月成本（30 天）</span><b id="mon">¥0</b></div>
+      <div class="kv"><span>每 1 万次</span><b id="w">¥0</b></div>
+      <div class="kv"><span>现在这版（抽取式）</span><b>¥0 · 0 次模型调用</b></div>
+      <div class="note">
+        对照：人工查一次资料约 2 分钟，按 ¥50/小时算 ≈ <b>¥1.67/次</b>。
+        所以只有当单次成本明显低于它，接 LLM 才划算——这就是“要不要上模型”的决策线，而不是“能不能上”。
+      </div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top:16px">
+    <h2>三、三档模型的每月账单（同样假设）</h2>
+    <table id="tbl">
+      <thead><tr><th>方案</th><th>单次</th><th>每月</th><th>什么时候选</th></tr></thead>
+      <tbody></tbody>
+    </table>
+    <div class="note">计算口径：单次 = 输入tokens × 输入单价 / 1e6 + 输出tokens × 输出单价 / 1e6；每月 = 单次 × 每天次数 × 30。</div>
+  </div>
+
+  <div class="foot">
+    这是产品经理该算的账：不是“模型有多强”，而是“这个场景值不值得为它付钱”。数字都是假设，方法才是答案。
+  </div>
+</div>
+<script>
+const $ = (s) => document.querySelector(s);
+const fmt = (n) => "¥" + (n >= 100 ? n.toFixed(0) : n >= 1 ? n.toFixed(2) : n.toFixed(4));
+function calc(){
+  const q = +$("#q").value, i = +$("#i").value, o = +$("#o").value;
+  const [pi, po] = $("#preset").value.split(",").map(Number);
+  const per = i * pi / 1e6 + o * po / 1e6;
+  $("#vq").textContent = q.toLocaleString();
+  $("#vi").textContent = i; $("#vo").textContent = o;
+  $("#per").innerHTML = fmt(per) + " <small>/ 次</small>";
+  $("#day").textContent = fmt(per * q);
+  $("#mon").textContent = fmt(per * q * 30);
+  $("#w").textContent = fmt(per * 10000);
+  const rows = [
+    ["国产入门（¥0.5 / ¥2）", 0.5, 2, "内部工具、答案短、可接受偶尔不稳"],
+    ["国产主流（¥2 / ¥8）", 2, 8, "面向用户的问答，要求稳定与引用"],
+    ["国际旗舰（¥7 / ¥28）", 7, 28, "复杂推理、长上下文、对外交付"]
+  ];
+  $("#tbl").querySelector("tbody").innerHTML = rows.map(([name, a, b, when]) => {
+    const p = i * a / 1e6 + o * b / 1e6;
+    return `<tr><td>${name}</td><td>${fmt(p)}</td><td>${fmt(p * q * 30)}</td><td style="color:#9fb2cd">${when}</td></tr>`;
+  }).join("");
+}
+["q","i","o","preset"].forEach(id => $("#" + id).addEventListener("input", calc));
+calc();
+</script>
+</body>
+</html>

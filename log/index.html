@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>决策日志 · 这套 RAG 是怎么一步步变好的</title>
+<style>
+:root{--bg:#070b14;--card:#111a2c;--line:#1f2c46;--fg:#e8eef9;--dim:#8fa1bd;--acc:#4fd1c5;--warn:#f6c177;--bad:#f87171}
+*{box-sizing:border-box}
+body{margin:0;background:radial-gradient(900px 500px at 12% -10%,#17253f 0,transparent 60%),var(--bg);color:var(--fg);font:15px/1.7 -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif}
+.wrap{max-width:980px;margin:0 auto;padding:28px 20px 64px}
+a{color:var(--acc);text-decoration:none}
+header{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:8px}
+.logo{width:42px;height:42px;border-radius:12px;background:linear-gradient(135deg,#4fd1c5,#8b7cf6);display:grid;place-items:center;font-weight:800;color:#08111f}
+h1{font-size:20px;margin:0}
+.sub{color:var(--dim);font-size:12.5px}
+.back{margin-left:auto;font-size:13px}
+.lead{color:#cfdcef;margin:14px 0 20px;font-size:14px}
+h2.sec{font-size:15px;color:#dfe9fb;margin:28px 0 10px}
+table{width:100%;border-collapse:collapse;background:var(--card);border:1px solid var(--line);border-radius:12px;overflow:hidden;font-size:13px}
+th,td{padding:9px 11px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+th{background:#0e1828;color:#a9bcd8;font-weight:600;font-size:12px}
+tr:last-child td{border-bottom:0}
+td.n{color:var(--acc);font-variant-numeric:tabular-nums;white-space:nowrap}
+td.mut{color:#9fb2cd}
+.up{color:#68d391}
+.down{color:var(--bad)}
+.why{color:#cfdcef}
+.note{color:var(--dim);font-size:12.5px;margin-top:10px}
+ol.dec{padding-left:20px;color:#cfdcef;font-size:14px}
+ol.dec li{margin:8px 0}
+ol.dec b{color:#fff}
+.bad{color:var(--warn)}
+.foot{color:var(--dim);font-size:12.5px;margin-top:26px;border-top:1px solid var(--line);padding-top:14px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="logo">↻</div>
+    <div>
+      <h1>决策日志</h1>
+      <div class="sub">同一套 30 条评测集，每一步改动的代价与收益</div>
+    </div>
+    <a class="back" href="../">← 返回作品集</a>
+  </header>
+
+  <p class="lead">面试里最加分的不是“我做了个 RAG”，而是“我改过三版，每版为什么改、代价是什么、哪一版回滚了”。这页就是那本账。</p>
+
+  <h2 class="sec">一、版本与指标（同一套 30 条评测集）</h2>
+  <table>
+    <thead><tr><th>版本</th><th>改了什么</th><th>hit@3</th><th>答案覆盖</th><th>拒答</th><th>P95</th><th>为什么</th></tr></thead>
+    <tbody>
+      <tr><td><b>v0.1</b></td><td>BM25 + 切分 360</td><td class="n">82%</td><td class="n">77%</td><td class="n">100%</td><td class="n">7.8ms</td><td class="why">先把“检索 → 回答 → 评测”跑通，口径定死再说优化</td></tr>
+      <tr><td><b>v0.2</b></td><td>切分改 520</td><td class="n up">96%</td><td class="n">77%</td><td class="n">100%</td><td class="n up">4.9ms</td><td class="why">段更长，命中率上去了，覆盖没动——说明瓶颈在答案抽取，不在召回</td></tr>
+      <tr><td><b>v0.3</b></td><td>加 rerank（top20 重排 top5）</td><td class="n">96%</td><td class="n up">82%</td><td class="n">100%</td><td class="n down">6.5ms</td><td class="why">覆盖 +5pp，代价是 P95 +1.6ms；这个交换划算，保留</td></tr>
+      <tr><td><b>v1.0</b></td><td>整套搬进浏览器（静态化）</td><td class="n">96%</td><td class="n">82%</td><td class="n">100%</td><td class="n">6.9ms</td><td class="why">没有服务器也能现场演示；延迟只代表本机</td></tr>
+      <tr><td><b>v1.0-fix</b></td><td>对齐 Python 的 STOP 与 clean_prose</td><td class="n">96%</td><td class="n">82%</td><td class="n">100%</td><td class="n">6.9ms</td><td class="why">中途覆盖率掉到 77%，排查发现是这两处“照抄不到位”</td></tr>
+    </tbody>
+  </table>
+  <div class="note">数据来自 P1 页面「跑 30 条评测」，每次都会把结果写进浏览器历史；上表是其中可复现的几轮。</div>
+
+  <h2 class="sec">二、四个关键决策</h2>
+  <ol class="dec">
+    <li><b>不用向量库。</b>本机没有可用的 embedding 服务；BM25 每一分都能解释（词频、IDF、标题加权）。宁可要“可解释的相关”，也不要“不可解释的相似”。</li>
+    <li><b>拒答做成三层。</b>域闸门（问的是不是这个领域）→ 分数阈值（最相关的那条够不够）→ 抽不到句子就拒。任何一层命中都拒，避免“硬答”。</li>
+    <li><b>先不接 LLM。</b>没有可用 key（DeepSeek 401），而且评测口径还没跑顺；先证明“检索与评测是可信的”，再换生成层，否则换了模型也说不清是谁的问题。</li>
+    <li><b>静态化。</b>把计算搬进浏览器，代价是失去联网调用、延迟数字只代表本机；收益是任何人打开链接就能跑评测，不需要我开机。</li>
+  </ol>
+
+  <h2 class="sec">三、失败与回滚（真实发生过的）</h2>
+  <table>
+    <thead><tr><th>现象</th><th>根因</th><th>处理</th></tr></thead>
+    <tbody>
+      <tr><td class="bad">答案里混进「&gt; [本节完整代码](https://…)」和「## 练习」</td><td>抽句函数在没抽到句子时，退回了整段原始 Markdown</td><td>只返回清洗后的句子；抽不到就拒答，不再兜底拼接</td></tr>
+      <tr><td class="bad">加了 rerank 后几乎全拒答</td><td>阈值仍拿<b>归一化后的分数</b>去比 5</td><td>改用 BM25 原始分做闸门，rerank 只负责排序</td></tr>
+      <tr><td class="bad">静态版覆盖率从 82% 掉到 77%</td><td>Python 的 STOP 实际没生效、clean_prose 只丢 1.–5. 开头的行，JS 版“更聪明”反而错</td><td>按原逻辑逐字复刻，覆盖率回到 82%</td></tr>
+    </tbody>
+  </table>
+
+  <h2 class="sec">四、下一轮要验证的假设</h2>
+  <ol class="dec">
+    <li><b>章节级路由</b>能不能救回“完整 RAG 流程包含哪些环节”这类跨章节问题（当前归因为召回漏）。</li>
+    <li><b>同义词/意图归一</b>能不能把“embedding 怎么选”这类命中文档但答偏的问题救回来。</li>
+    <li><b>接真模型后</b>，同一套 30 条评测的覆盖会涨多少、成本涨多少——用 <a href="../cost/">成本模型</a> 那张表算过再决定。</li>
+  </ol>
+
+  <div class="foot">
+    想现场复现：打开 <a href="../p1/">知识库问答</a> → 选 chunk → 点「跑 30 条评测」→ 下面会列出本轮失败样例与归因。
+  </div>
+</div>
+</body>
+</html>

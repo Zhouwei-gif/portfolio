@@ -54,6 +54,15 @@ select{background:#0b1424;border:1px solid var(--line);color:var(--txt);border-r
 .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 footer{color:#5f7392;font-size:12px;margin-top:26px;line-height:1.8}
 .note{margin-top:10px;padding:10px 12px;border:1px dashed var(--line);border-radius:10px;color:var(--mut);font-size:12px}
+.fails{width:100%;border-collapse:collapse;font-size:12.5px;margin-top:6px}
+.fails th,.fails td{text-align:left;padding:6px 8px;border-bottom:1px solid #1a2740;vertical-align:top;color:#c7d5e8}
+.fails th{color:var(--mut);font-weight:500;white-space:nowrap}
+.fails td.mut{color:#93a6c2}
+.failsum{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin:2px 0 6px}
+.pill{display:inline-block;border:1px solid var(--line);border-radius:999px;padding:1px 8px;font-size:11.5px;color:#b9cbe4;white-space:nowrap}
+.pill.warn{color:var(--warn);border-color:#5a4322}
+.pill.bad{color:var(--bad);border-color:#5a2a2a}
+.hint.ok{color:var(--ok)}
 </style>
 </head>
 <body>
@@ -86,6 +95,15 @@ footer{color:#5f7392;font-size:12px;margin-top:26px;line-height:1.8}
         <div class="note">
           这一版把 Python 服务搬进了浏览器：同样的分词（英文词 + 汉字 bigram）、同样的 BM25 公式、同样的域闸门与抽取式回答。
           因此无需服务器也能现场提问、跑 30 条评测；代价是没有“联网调用模型”的环节，延迟数字也只代表本机。
+        </div>
+      </div>
+
+      <div class="card" style="margin-top:14px">
+        <h2>失败样例与归因</h2>
+        <div id="fails"></div>
+        <div class="note">
+          归因口径：期望文档没进 top3 = 召回漏；命中文档但答案没覆盖要点 = 抽取失败；可答却拒答 = 误拒；该拒却答 = 域闸门漏。
+          每次「跑 30 条评测」都会用同一口径重算，失败清单来自本轮真实结果，不是手写样例。
         </div>
       </div>
     </div>

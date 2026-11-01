@@ -212,14 +212,14 @@ function runEval(chunkSize, useRerank){
     if (c.type === "refusal"){
       const ok = r.refused;
       correct += ok ? 1 : 0;
-      rows.push({id:c.id, q:c.q, type:"refusal", pass:ok});
+      rows.push({id:c.id, q:c.q, type:"refusal", pass:ok, refused:r.refused, docs:docs, ans:(r.answer||"").slice(0,120)});
     } else {
       answerable++;
       const h = c.expect_docs.some(d => docs.includes(d));
       const covered = (c.expect_any || []).some(k => r.answer.includes(k));
       hit += h ? 1 : 0; cov += covered ? 1 : 0;
       correct += r.refused ? 0 : 1;
-      rows.push({id:c.id, q:c.q, type:"answer", hit:h, covered, refused:r.refused, docs});
+      rows.push({id:c.id, q:c.q, type:"answer", hit:h, covered, refused:r.refused, docs, ans:(r.answer||"").slice(0,140)});
     }
   }
   lat.sort((a, b) => a - b);
@@ -267,8 +267,47 @@ function renderRuns(){
     <div class="stat"><b>${(last.coverage*100).toFixed(0)}%</b><span>答案覆盖</span></div>
     <div class="stat"><b>${(last.refusal_acc*100).toFixed(0)}%</b><span>拒答准确率</span></div>
     <div class="stat"><b>${last.p50_ms}<span style="font-size:12px"> / ${last.p95_ms}</span></b><span>P50 / P95 ms</span></div>`;
+  renderFails();
   $("#last").textContent = `最近一次：${last.at} · ${last.cases} 条 · chunk ${last.chunk_size}${last.seed ? " · 基线（Python 服务）" : " · 浏览器内重算"}`;
 }
+
+function classifyFail(row){
+  if (!row) return null;
+  if (row.type === "refusal") return row.pass ? null : {kind:"域闸门漏", why:"该拒答却给出了答案"};
+  if (row.refused) return {kind:"误拒", why:"语料里有答案却拒答"};
+  if (!row.hit) return {kind:"召回漏", why:"期望文档没进 top3"};
+  if (!row.covered) return {kind:"抽取失败", why:"命中文档但答案没覆盖要点"};
+  return null;
+}
+function renderFails(){
+  const box = $("#fails");
+  if (!box) return;
+  const runs = loadRuns();
+  const last = runs[runs.length - 1];
+  if (!last || !last.rows || !last.rows.length){
+    box.innerHTML = '<div class="hint">最近一次是 Python 基线（没有逐条明细）。点上方「跑 30 条评测」，这里会列出本轮失败样例与归因。</div>';
+    return;
+  }
+  const map = new Map(CASES.map(c => [c.id, c]));
+  const fails = last.rows.map(r => ({row:r, c:map.get(r.id), f:classifyFail(r)})).filter(x => x.f);
+  if (!fails.length){
+    box.innerHTML = '<div class="hint ok">本轮 30 条全部通过，没有失败样例。</div>';
+    return;
+  }
+  const cnt = {};
+  fails.forEach(x => cnt[x.f.kind] = (cnt[x.f.kind]||0)+1);
+  const chips = Object.entries(cnt).map(([k,v]) => `<span class="pill">${k} ${v}</span>`).join("");
+  const rows = fails.slice(0,10).map(({row,c,f}) => {
+    const exp = c.type === "refusal" ? "应拒答" : (c.expect_docs||[]).join(" / ");
+    const got = (row.docs||[]).slice(0,3).join(" · ") || "—";
+    return `<tr><td><span class="pill ${f.kind === "召回漏" ? "warn" : "bad"}">${f.kind}</span></td>` +
+      `<td>${esc(row.q)}</td><td class="mut">${esc(exp)}</td><td class="mut">${esc(got)}</td>` +
+      `<td class="mut">${esc(row.ans || f.why)}</td></tr>`;
+  }).join("");
+  box.innerHTML = `<div class="failsum">${chips}<span class="hint" style="margin-left:6px">共 ${fails.length} / ${last.rows.length} 条</span></div>` +
+    `<table class="fails"><thead><tr><th>归因</th><th>问题</th><th>期望</th><th>实得 top3</th><th>线索</th></tr></thead><tbody>${rows}</tbody></table>`;
+}
+
 function ask(){
   const q = $("#q").value.trim();
   if (!q) return;
