@@ -54,6 +54,11 @@
     .card{padding:16px}
     .foot{flex-direction:column;gap:6px}
   }
+.first{display:block;border:1px solid #2a4a6b;background:linear-gradient(100deg,#0e1c30,#122436 60%,#0e1c30);border-radius:14px;padding:14px 18px;margin:0 0 18px;color:#e8eef9}
+.first .k{display:inline-block;font-size:11.5px;color:#4fd1c5;border:1px solid #2f5a58;border-radius:999px;padding:1px 8px;margin-right:8px}
+.first b{font-size:16px}
+.first .d{display:block;color:#8fa1bd;font-size:13px;margin-top:6px}
+.first:hover{border-color:#4fd1c5}
 </style>
 </head>
 <body>
@@ -72,7 +77,12 @@
     全部是静态页面：没有账号、没有后台，手机和电脑都能直接打开，也不需要你的电脑开着。
   </p>
 
-  <div class="grid">
+  <a class="first" href="case/">
+  <span class="k">先读这一页</span>
+  <b>一个 RAG 问答的 72 小时</b>
+  <span class="d">从“能答”到“能证明”：三次改动、一次指标失效、一张成本账 →</span>
+</a>
+<div class="grid">
     <a class="card" href="platform/">
       <div class="tag">平台 · 9 个视图</div>
       <h2>求职训练台</h2>
