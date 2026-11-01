@@ -39,7 +39,11 @@ function cleanProse(text){
               .replace(/\[([^\]]+)\]\([^)]*\)/g, "$1");
   const keep = [];
   for (const raw of t.split(/\r?\n/)){
-    const s = raw.trim().replace(/\*\*/g, "").trim();
+    const s = raw.trim()
+      .replace(/<\/?[a-zA-Z][^>]*>/g, " ")
+      .replace(/\*\*/g, "")
+      .replace(/\s+/g, " ")
+      .trim();
     if (!s || ["#","|","-","*",">","1.","2.","3.","4.","5."].some(p => s.startsWith(p))) continue;
     if (s.includes("`") || s.includes("{") || s.includes("}")) continue;
     if ((s.match(/=/g) || []).length > 2) continue;
@@ -81,7 +85,7 @@ function buildIndex(size){
   if (IDX && IDX_SIZE === size) return IDX;
   const chunks = [];
   for (const d of DOCS){
-    chunkText(d.body, size).forEach((text, n) => {
+    chunkText(d.body.replace(/<\/?[a-zA-Z][^>]*>/g, " "), size).forEach((text, n) => {
       const tf = new Map();
       const tk = tokens(text);
       for (const t of tk) tf.set(t, (tf.get(t) || 0) + 1);
@@ -133,9 +137,11 @@ function bestSentences(text, query, limit = 2){
     if (/^[第（(]/.test(s) && s.length < 30) continue;
     const cjk = (s.match(CJK) || []).length;
     if (cjk < s.length * 0.45) continue;
+    if (/(^|\s)[a-zA-Z_]\w*\s*=\s*[^=]/.test(s)) continue;
+    if (cjk < 8 && /(print\(|import |def |return |\[\]|\{\}|item\.get)/.test(s)) continue;
     sents.push(s);
   }
-  if (!sents.length) return prose.slice(0, 160).trim();
+  if (!sents.length) return "";
   const score = (s) => {
     const overlap = [...q].filter(t => new Set(tokens(s)).has(t)).length;
     const bonus = DEF_WORDS.some(w => s.includes(w)) ? 2 : 0;

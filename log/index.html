@@ -45,22 +45,26 @@ ol.dec b{color:#fff}
     <a class="back" href="../">← 返回作品集</a>
   </header>
 
-  <p class="lead">面试里最加分的不是“我做了个 RAG”，而是“我改过三版，每版为什么改、代价是什么、哪一版回滚了”。这页就是那本账。</p>
+  <p class="lead">面试里最加分的不是“我做了个 RAG”，而是“我改过几版、每版为什么改、代价是什么、哪一版回滚了”。这页就是那本账，包括一次<b>指标本身出错</b>的复盘。</p>
 
-  <h2 class="sec">一、版本与指标（同一套 30 条评测集）</h2>
+  <h2 class="sec">一、版本与指标（当前口径，同一套 30 条评测集）</h2>
   <table>
     <thead><tr><th>版本</th><th>改了什么</th><th>hit@3</th><th>答案覆盖</th><th>拒答</th><th>P95</th><th>为什么</th></tr></thead>
     <tbody>
-      <tr><td><b>v0.1</b></td><td>BM25 + 切分 360</td><td class="n">82%</td><td class="n">77%</td><td class="n">100%</td><td class="n">7.8ms</td><td class="why">先把“检索 → 回答 → 评测”跑通，口径定死再说优化</td></tr>
-      <tr><td><b>v0.2</b></td><td>切分改 520</td><td class="n up">96%</td><td class="n">77%</td><td class="n">100%</td><td class="n up">4.9ms</td><td class="why">段更长，命中率上去了，覆盖没动——说明瓶颈在答案抽取，不在召回</td></tr>
-      <tr><td><b>v0.3</b></td><td>加 rerank（top20 重排 top5）</td><td class="n">96%</td><td class="n up">82%</td><td class="n">100%</td><td class="n down">6.5ms</td><td class="why">覆盖 +5pp，代价是 P95 +1.6ms；这个交换划算，保留</td></tr>
-      <tr><td><b>v1.0</b></td><td>整套搬进浏览器（静态化）</td><td class="n">96%</td><td class="n">82%</td><td class="n">100%</td><td class="n">6.9ms</td><td class="why">没有服务器也能现场演示；延迟只代表本机</td></tr>
-      <tr><td><b>v1.0-fix</b></td><td>对齐 Python 的 STOP 与 clean_prose</td><td class="n">96%</td><td class="n">82%</td><td class="n">100%</td><td class="n">6.9ms</td><td class="why">中途覆盖率掉到 77%，排查发现是这两处“照抄不到位”</td></tr>
+      <tr><td><b>v0.1</b></td><td>BM25 + 切分 360</td><td class="n">82%</td><td class="n">73%</td><td class="n">100%</td><td class="n">6.3ms</td><td class="why">先把“检索 → 回答 → 评测”跑通，口径定死再谈优化</td></tr>
+      <tr><td><b>v0.2</b></td><td>切分改 520</td><td class="n up">96%</td><td class="n down">68%</td><td class="n">100%</td><td class="n">7.3ms</td><td class="why">块更大，命中率上去了，但答案里混进更多无关句，覆盖反而掉 5pp</td></tr>
+      <tr><td><b>v0.3</b></td><td>加 rerank（top20 重排 top5）</td><td class="n">96%</td><td class="n up">73%</td><td class="n">100%</td><td class="n up">6.9ms</td><td class="why">重排把覆盖补回 5pp，延迟没变差——因为命中的 chunk 更短</td></tr>
+      <tr><td><b>v1.0</b></td><td>整套搬进浏览器（静态化）</td><td class="n">96%</td><td class="n">73%</td><td class="n">100%</td><td class="n">6.9ms</td><td class="why">没有服务器也能现场演示；延迟只代表本机</td></tr>
+      <tr><td><b>v1.1</b></td><td>清洗 HTML 标签、禁止代码兜底</td><td class="n">96%</td><td class="n">73%</td><td class="n">100%</td><td class="n">6.9ms</td><td class="why">答案不再混进代码；更重要的是，<b>挤掉了 9pp 的假覆盖</b>（见下）</td></tr>
     </tbody>
   </table>
-  <div class="note">数据来自 P1 页面「跑 30 条评测」，每次都会把结果写进浏览器历史；上表是其中可复现的几轮。</div>
+  <div class="note">数据来自 P1 页面「跑 30 条评测」，每次都会写进浏览器历史；上表是当前版本可复现的几轮。</div>
 
-  <h2 class="sec">二、四个关键决策</h2>
+  <h2 class="sec">二、一次指标失效：82% 的覆盖里有多少水分</h2>
+  <p class="lead" style="margin:6px 0 10px">v1.0 之前，520+rerank 的答案覆盖是 <b>82%</b>。把“抽不到句子就退回原文”的兜底删掉后，覆盖掉到 <b>73%</b>。差的 9pp 不是能力退化，而是：<b>代码片段里恰好含有关键词</b>（比如评测问题问 faithfulness，答案里出现 <code>faithfulness_evaluator</code> 就被算命中）。指标把“出现过这个词”当成了“回答了这个问题”。</p>
+  <div class="note">处理：① 答案只允许来自清洗后的句子，抽不到就拒答；② 抽句阶段过滤代码行；③ 保留这条记录——它比任何一个百分数都更能说明“评测口径要自己盯”。</div>
+
+  <h2 class="sec">三、四个关键决策</h2>
   <ol class="dec">
     <li><b>不用向量库。</b>本机没有可用的 embedding 服务；BM25 每一分都能解释（词频、IDF、标题加权）。宁可要“可解释的相关”，也不要“不可解释的相似”。</li>
     <li><b>拒答做成三层。</b>域闸门（问的是不是这个领域）→ 分数阈值（最相关的那条够不够）→ 抽不到句子就拒。任何一层命中都拒，避免“硬答”。</li>
@@ -68,25 +72,26 @@ ol.dec b{color:#fff}
     <li><b>静态化。</b>把计算搬进浏览器，代价是失去联网调用、延迟数字只代表本机；收益是任何人打开链接就能跑评测，不需要我开机。</li>
   </ol>
 
-  <h2 class="sec">三、失败与回滚（真实发生过的）</h2>
+  <h2 class="sec">四、失败与回滚（真实发生过的）</h2>
   <table>
     <thead><tr><th>现象</th><th>根因</th><th>处理</th></tr></thead>
     <tbody>
       <tr><td class="bad">答案里混进「&gt; [本节完整代码](https://…)」和「## 练习」</td><td>抽句函数在没抽到句子时，退回了整段原始 Markdown</td><td>只返回清洗后的句子；抽不到就拒答，不再兜底拼接</td></tr>
       <tr><td class="bad">加了 rerank 后几乎全拒答</td><td>阈值仍拿<b>归一化后的分数</b>去比 5</td><td>改用 BM25 原始分做闸门，rerank 只负责排序</td></tr>
-      <tr><td class="bad">静态版覆盖率从 82% 掉到 77%</td><td>Python 的 STOP 实际没生效、clean_prose 只丢 1.–5. 开头的行，JS 版“更聪明”反而错</td><td>按原逻辑逐字复刻，覆盖率回到 82%</td></tr>
+      <tr><td class="bad">静态版覆盖率从 82% 掉到 77%</td><td>Python 的 STOP 实际没生效、clean_prose 只丢 1.–5. 开头的行，JS 版“更聪明”反而错</td><td>按原逻辑逐字复刻，覆盖率回到一致口径</td></tr>
+      <tr><td class="bad">覆盖 82% 但答案里出现代码</td><td>指标把“代码里出现关键词”算成答对</td><td>禁止代码兜底 + 抽句过滤，得到 73% 的真实覆盖</td></tr>
     </tbody>
   </table>
 
-  <h2 class="sec">四、下一轮要验证的假设</h2>
+  <h2 class="sec">五、下一轮要验证的假设</h2>
   <ol class="dec">
     <li><b>章节级路由</b>能不能救回“完整 RAG 流程包含哪些环节”这类跨章节问题（当前归因为召回漏）。</li>
     <li><b>同义词/意图归一</b>能不能把“embedding 怎么选”这类命中文档但答偏的问题救回来。</li>
-    <li><b>接真模型后</b>，同一套 30 条评测的覆盖会涨多少、成本涨多少——用 <a href="../cost/">成本模型</a> 那张表算过再决定。</li>
+    <li><b>接真模型后</b>，同一套 30 条评测的覆盖会涨多少、成本涨多少——先看 <a href="../cost/">成本模型</a> 再决定。</li>
   </ol>
 
   <div class="foot">
-    想现场复现：打开 <a href="../p1/">知识库问答</a> → 选 chunk → 点「跑 30 条评测」→ 下面会列出本轮失败样例与归因。
+    想现场复现：打开 <a href="../p1/">知识库问答</a> → 选 chunk → 点「跑 30 条评测」→ 下方会列出本轮失败样例与归因。
   </div>
 </div>
 </body>

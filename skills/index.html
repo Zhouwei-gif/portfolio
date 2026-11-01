@@ -69,13 +69,13 @@ td.gap{color:var(--warn)}
       <tr>
         <td class="k">数据与指标</td>
         <td>P1 30 条评测集（22 可答 + 8 拒答）；<a href="../p2/">P2</a> 8 份 JD 人工打标</td>
-        <td class="num">hit@3 96% / 拒答 100%</td>
+        <td class="num">hit@3 96% / 覆盖 73% / 拒答 100%</td>
         <td class="gap">没有线上真实流量，全是离线集</td>
       </tr>
       <tr>
         <td class="k">评测与 badcase</td>
-        <td><a href="../p1/">P1</a> 每轮评测自动产出失败清单（最近一轮 6/30：召回漏 4、抽取失败 2）；<a href="../log/">决策日志</a> 记了修复前后</td>
-        <td class="num">6/30 失败 · 覆盖 +5pp</td>
+        <td><a href="../p1/">P1</a> 每轮评测自动产出失败清单（最近一轮 7/30：召回漏 1、抽取失败 6）；<a href="../log/">决策日志</a> 记了三次回滚</td>
+        <td class="num">7/30 失败 · 覆盖 68→73</td>
         <td class="gap">失败样例能自动产出，但样本仍是 30 条，需要扩到 100+</td>
       </tr>
       <tr>
@@ -87,7 +87,7 @@ td.gap{color:var(--warn)}
       <tr>
         <td class="k">RAG 与 Agent</td>
         <td>P1 的 BM25 / 切分 / rerank 取舍；P3 用规则状态机而不是 LLM 追问</td>
-        <td class="num">520+rerank 96/82</td>
+        <td class="num">520+rerank 96/73</td>
         <td class="gap">Agent 经验只覆盖 JD 的 3/8</td>
       </tr>
       <tr>
