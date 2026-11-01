@@ -63,6 +63,8 @@ footer{color:#5f7392;font-size:12px;margin-top:26px;line-height:1.8}
 .pill.warn{color:var(--warn);border-color:#5a4322}
 .pill.bad{color:var(--bad);border-color:#5a2a2a}
 .hint.ok{color:var(--ok)}
+.mini{background:#13233a;color:#cfe0f5;border:1px solid #26405f;border-radius:7px;padding:2px 9px;font-size:12px;margin-right:5px;cursor:pointer}
+.mini:hover{border-color:#4fd1c5;color:#fff}
 </style>
 </head>
 <body>
@@ -101,6 +103,8 @@ footer{color:#5f7392;font-size:12px;margin-top:26px;line-height:1.8}
       <div class="card" style="margin-top:14px">
         <h2>失败样例与归因</h2>
         <div id="fails"></div>
+        <div class="hint" style="margin:10px 0 4px">人工抽检：自动指标只能说明“命中了没有”，不能说明“答得对不对”。对下面 30 条各点一次「对/错」，会算出人工与自动判定的一致率。</div>
+        <div id="calib"></div>
         <div class="note">
           归因口径：期望文档没进 top3 = 召回漏；命中文档但答案没覆盖要点 = 抽取失败；可答却拒答 = 误拒；该拒却答 = 域闸门漏。
           每次「跑 30 条评测」都会用同一口径重算，失败清单来自本轮真实结果，不是手写样例。

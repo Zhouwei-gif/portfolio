@@ -260,6 +260,7 @@ function boot(){
   $("#tag").textContent = `${DOCS.length} 篇 · ${IDX.chunks.length} chunks · size ${IDX.size}`;
   $("#docs").innerHTML = DOCS.map(d => `<li><b>${d.id}</b> ${esc(d.title)}</li>`).join("");
   renderRuns();
+  renderCalib();
 }
 function renderRuns(){
   const runs = loadRuns();
@@ -331,6 +332,46 @@ function ask(){
       <div class="bar"><i style="width:${Math.min(100, x.score * 100 / (r.retrieved[0].score || 1))}%"></i></div>
     </div>`).join("");
 }
+
+/* ---------- 人工抽检（校准自动指标） ---------- */
+const LKEY = "rag-human-labels-v1";
+function loadLabels(){
+  try { return JSON.parse(localStorage.getItem(LKEY) || "{}") || {}; } catch(e){ return {}; }
+}
+function saveLabels(o){ localStorage.setItem(LKEY, JSON.stringify(o)); }
+function machineOk(c, useRerank){
+  const r = answer(c.q, useRerank);
+  if (c.type === "refusal") return !!r.refused;
+  return (c.expect_any || []).some(k => r.answer.includes(k)) && !r.refused;
+}
+function renderCalib(){
+  const box = $("#calib"); if (!box) return;
+  if (!CASES.length){ box.innerHTML = ""; return; }
+  const labels = loadLabels();
+  const useRerank = $("#rk") ? $("#rk").checked : false;
+  let labeled = 0, agree = 0;
+  const rows = CASES.map(c => {
+    const auto = machineOk(c, useRerank);
+    const lab = labels[c.id];
+    if (lab === 0 || lab === 1) { labeled++; if ((lab === 1) === auto) agree++; }
+    const labTxt = lab === 1 ? '<b style="color:#68d391">对</b>' : lab === 0 ? '<b style="color:#f87171">错</b>' : '<span class="mut">未标</span>';
+    return `<tr><td class="mut">${c.id}</td><td>${esc(c.q).slice(0,42)}</td>` +
+      `<td>${auto ? "对" : "错"}</td><td>${labTxt}</td>` +
+      `<td><button class="mini" data-lab="1" data-id="${c.id}">对</button>` +
+      `<button class="mini" data-lab="0" data-id="${c.id}">错</button></td></tr>`;
+  }).join("");
+  const rate = labeled ? Math.round(agree / labeled * 100) : null;
+  box.innerHTML =
+    `<div class="failsum">人工已标 <b>${labeled}</b> / ${CASES.length} 条` +
+    (rate === null ? ` · 标 5 条以上才显示一致率` : ` · 与自动判定一致率 <b style="color:${rate>=80?"#68d391":"#f6c177"}">${rate}%</b>`) +
+    `<button class="mini" id="calib-reset" style="margin-left:auto">清空标注</button></div>` +
+    `<table class="fails"><tr><th>#</th><th>问题</th><th>自动</th><th>人工</th><th>标注</th></tr>${rows}</table>`;
+  box.querySelectorAll("[data-lab]").forEach(b => b.onclick = () => {
+    const o = loadLabels(); o[b.dataset.id] = +b.dataset.lab; saveLabels(o); renderCalib();
+  });
+  const rs = $("#calib-reset");
+  if (rs) rs.onclick = () => { saveLabels({}); renderCalib(); };
+}
 function runEvalUI(){
   const btn = $("#run");
   btn.disabled = true; btn.textContent = "评测中…";
@@ -339,6 +380,7 @@ function runEvalUI(){
     buildIndex(+$("#cs").value);
     $("#tag").textContent = `${DOCS.length} 篇 · ${IDX.chunks.length} chunks · size ${IDX.size}`;
     renderRuns();
+    renderCalib();
     btn.disabled = false; btn.textContent = "跑 30 条评测";
     console.log("eval", s);
   }, 30);
@@ -357,6 +399,9 @@ Promise.all([
   const qp = new URLSearchParams(location.search);
   if (qp.get("cs")) $("#cs").value = qp.get("cs");
   if (qp.get("rk") === "1") $("#rk").checked = true;
+  if (qp.get("labels") === "demo" && !Object.keys(loadLabels()).length) {
+    saveLabels({a01:1,a02:0,a03:1,a04:1,a05:0,a16:0}); renderCalib();
+  }
   if (qp.get("eval") === "1") setTimeout(() => runEvalUI(), 60);
 }).catch(err => {
   $("#tag").textContent = "数据加载失败";
