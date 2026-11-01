@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>知识库问答 · RAG + 评测（静态版）</title>
+<style>
+:root{--bg:#0a0f1d;--bg2:#0f1729;--card:#111c31;--line:#22314d;--txt:#e6edf7;--mut:#8fa3c0;--acc:#4fd1c5;--warn:#f6ad55;--bad:#fc8181;--ok:#68d391}
+*{box-sizing:border-box}
+body{margin:0;background:radial-gradient(900px 500px at 15% -10%,#15233c 0,transparent 60%),var(--bg);color:var(--txt);font:15px/1.65 system-ui,-apple-system,"Segoe UI","Microsoft YaHei",sans-serif}
+.wrap{max-width:1180px;margin:0 auto;padding:22px 20px 60px}
+header{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:18px}
+.logo{width:40px;height:40px;border-radius:11px;background:linear-gradient(135deg,#4fd1c5,#8b7cf6);display:grid;place-items:center;font-weight:800;color:#08111f}
+h1{font-size:20px;margin:0}
+.sub{color:var(--mut);font-size:12.5px}
+.tag{margin-left:auto;font-size:12px;color:var(--mut);border:1px solid var(--line);border-radius:999px;padding:4px 10px}
+.grid{display:grid;grid-template-columns:1fr 330px;gap:18px;align-items:start}
+@media(max-width:980px){.grid{grid-template-columns:1fr}}
+.card{background:linear-gradient(180deg,rgba(255,255,255,.03),transparent),var(--card);border:1px solid var(--line);border-radius:14px;padding:16px 16px 14px}
+.card h2{font-size:13px;letter-spacing:.08em;color:var(--mut);text-transform:uppercase;margin:0 0 10px}
+.ask{display:flex;gap:8px}
+input[type=text]{flex:1;background:#0b1424;border:1px solid var(--line);color:var(--txt);border-radius:10px;padding:12px 14px;font-size:15px;outline:none}
+input[type=text]:focus{border-color:var(--acc)}
+button{background:var(--acc);color:#052021;border:0;border-radius:10px;padding:12px 18px;font-weight:700;cursor:pointer}
+button:disabled{opacity:.5;cursor:default}
+.hint{color:var(--mut);font-size:12.5px;margin-top:8px}
+.ans{margin-top:16px}
+.ans .q{color:var(--mut);font-size:12.5px}
+.ans .a{margin-top:6px;font-size:15.5px}
+.ans.refuse .a{color:var(--warn)}
+.cites{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.cite{font-size:12px;border:1px solid var(--line);border-radius:999px;padding:4px 10px;color:var(--acc);text-decoration:none}
+.cite:hover{border-color:var(--acc)}
+.meta{display:flex;gap:14px;color:var(--mut);font-size:12px;margin-top:10px;flex-wrap:wrap}
+.chunks{margin-top:14px;display:flex;flex-direction:column;gap:8px}
+.chunk{border:1px solid var(--line);border-radius:10px;padding:10px 12px;background:#0c1626}
+.chunk .top{display:flex;gap:10px;align-items:center;font-size:12px;color:var(--mut)}
+.chunk .sc{color:var(--acc);font-variant-numeric:tabular-nums}
+.chunk p{margin:6px 0 0;font-size:13px;color:#c7d5e8}
+.bar{height:4px;background:#1a2740;border-radius:2px;margin-top:8px;overflow:hidden}
+.bar i{display:block;height:100%;background:linear-gradient(90deg,#4fd1c5,#8b7cf6)}
+.side .card+.card{margin-top:14px}
+.docs{list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:6px;max-height:320px;overflow:auto}
+.docs li{font-size:12.5px;color:#c7d5e8;border-left:2px solid var(--line);padding-left:8px}
+.docs li b{color:var(--mut);font-weight:500}
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.stat{background:#0c1626;border:1px solid var(--line);border-radius:10px;padding:8px 10px}
+.stat b{font-size:18px;display:block}
+.stat span{color:var(--mut);font-size:11.5px}
+.runs{width:100%;border-collapse:collapse;font-size:12px;margin-top:8px}
+.runs th,.runs td{text-align:left;padding:5px 6px;border-bottom:1px solid #1a2740;color:#c7d5e8;white-space:nowrap}
+.runs th{color:var(--mut);font-weight:500}
+select{background:#0b1424;border:1px solid var(--line);color:var(--txt);border-radius:8px;padding:7px 9px;font-size:12.5px}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+footer{color:#5f7392;font-size:12px;margin-top:26px;line-height:1.8}
+.note{margin-top:10px;padding:10px 12px;border:1px dashed var(--line);border-radius:10px;color:var(--mut);font-size:12px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="logo">RAG</div>
+    <div>
+      <h1>知识库问答 · 检索 + 评测</h1>
+      <div class="sub">11 篇中文 RAG 文档 · BM25 检索 · 抽取式回答（静态版，无后端）</div>
+    </div>
+    <div class="tag" id="tag">加载中…</div>
+  </header>
+
+  <div class="grid">
+    <div>
+      <div class="card">
+        <h2>提问</h2>
+        <div class="ask">
+          <input id="q" type="text" placeholder="例：混合检索为什么比单一检索好？" autocomplete="off" />
+          <button id="go">提问</button>
+        </div>
+        <div class="hint"><label><input type="checkbox" id="rk" /> 启用 rerank（BM25 top20 → 启发式重排 top5）</label> · 问到范围外，系统应该拒答而不是编。试试「今天北京天气怎么样」。</div>
+        <div class="ans" id="ans" hidden>
+          <div class="q" id="aq"></div>
+          <div class="a" id="atxt"></div>
+          <div class="cites" id="cites"></div>
+          <div class="meta" id="ameta"></div>
+        </div>
+        <div class="chunks" id="chunks"></div>
+        <div class="note">
+          这一版把 Python 服务搬进了浏览器：同样的分词（英文词 + 汉字 bigram）、同样的 BM25 公式、同样的域闸门与抽取式回答。
+          因此无需服务器也能现场提问、跑 30 条评测；代价是没有“联网调用模型”的环节，延迟数字也只代表本机。
+        </div>
+      </div>
+    </div>
+
+    <div class="side">
+      <div class="card">
+        <h2>评测</h2>
+        <div class="row">
+          <select id="cs">
+            <option value="240">chunk 240</option>
+            <option value="360" selected>chunk 360</option>
+            <option value="520">chunk 520</option>
+          </select>
+          <button id="run">跑 30 条评测</button>
+        </div>
+        <div class="stats" id="stats" style="margin-top:12px"></div>
+        <div id="last" class="hint"></div>
+        <table class="runs" id="runs"></table>
+      </div>
+      <div class="card">
+        <h2>覆盖范围</h2>
+        <ul class="docs" id="docs"></ul>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    评测定义：hit@3（正确文档是否进前 3）· 关键词覆盖（答案是否命中期望要点）· 拒答准确率（该拒的拒、不该拒的不拒）· P50/P95 延迟。<br>
+    生成层当前为抽取式（本机无可用 LLM）；接口已按「检索 → 上下文 → 生成」切开，换成任意 LLM 只需替换 answer() 的生成段。<br>
+    表里的“基线”是 Python 服务跑出的原始数字；在浏览器里点“跑 30 条评测”会用同一口径重算，延迟会明显更低（没有网络与进程开销）。
+  </footer>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>

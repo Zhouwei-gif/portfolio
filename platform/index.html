@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AI 产品经理 · 全链路工作台</title>
+<link rel="stylesheet" href="assets/styles.css">
+</head>
+<body>
+<div class="app">
+  <aside class="side">
+    <div class="brand">
+      <div class="logo">AI</div>
+      <div><b>AI 产品工作台</b><small>学 → 做 → 证 → 投 → 面</small></div>
+    </div>
+    <nav class="nav" id="nav">
+      <button data-v="dashboard" class="on"><span class="ico">◎</span>总览 · 下一步</button>
+      <button data-v="path"><span class="ico">↗</span>8 周路径</button>
+      <button data-v="knowledge"><span class="ico">▤</span>知识系统</button>
+      <button data-v="projects"><span class="ico">◆</span>项目工作台</button>
+      <button data-v="eval"><span class="ico">▦</span>评测实验室</button>
+      <button data-v="career"><span class="ico">✉</span>求职管线</button>
+      <button data-v="interview"><span class="ico">?</span>面试训练</button>
+      <button data-v="review"><span class="ico">▣</span>复盘 · 证据卡</button>
+      <button data-v="settings"><span class="ico">⚙</span>设置与数据</button>
+    </nav>
+    <div class="sidefoot">
+      <div class="row" style="justify-content:space-between"><span>总进度</span><b id="sideProg" style="color:var(--text)">0%</b></div>
+      <div class="progress"><i id="sideBar" style="width:0%"></i></div>
+      <div style="margin-top:10px">知识源：<a href="https://my.feishu.cn/wiki/OY4FwGXr8i2diPkxkvEcNVA7nhg" target="_blank" rel="noopener">亚慧《AI 产品经理》</a></div>
+      <div style="margin-top:4px">数据只存本机 · 记得导出备份</div>
+    </div>
+  </aside>
+  <main class="main"><div id="view" class="view on"></div></main>
+</div>
+
+<div class="modal" id="modal"><div class="sheet" id="sheet"></div></div>
+<div class="toast" id="toast"></div>
+
+<script src="assets/data.js"></script>
+<script src="assets/core.js"></script>
+<script src="assets/modules.js"></script>
+</body>
+</html>

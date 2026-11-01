@@ -1,0 +1,635 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>模拟面试官 · 本地版</title>
+<style>
+  :root{
+    --bg:#0a0f1d; --bg2:#0e1526; --card:#111a2e; --line:#1e2a44;
+    --txt:#e6edf7; --dim:#8b9bb4; --accent:#4fd1c5; --accent2:#8b7cf6;
+    --warn:#f6ad55; --bad:#fc8181; --ok:#68d391;
+    --r:14px;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;background:var(--bg);color:var(--txt);
+    font-family:"Segoe UI","PingFang SC","Microsoft YaHei",system-ui,sans-serif;
+    line-height:1.65;-webkit-font-smoothing:antialiased}
+  body{background:
+    radial-gradient(1100px 600px at 85% -10%,rgba(139,124,246,.14),transparent 60%),
+    radial-gradient(900px 500px at 5% 0%,rgba(79,209,197,.10),transparent 55%),
+    var(--bg)}
+  a{color:var(--accent)}
+  .wrap{max-width:1060px;margin:0 auto;padding:28px 22px 80px}
+  header.top{display:flex;align-items:center;gap:14px;margin-bottom:22px}
+  .logo{width:44px;height:44px;border-radius:13px;display:grid;place-items:center;
+    background:linear-gradient(135deg,var(--accent),var(--accent2));color:#06202b;font-weight:800}
+  h1{font-size:22px;margin:0}
+  .sub{color:var(--dim);font-size:13px;margin-top:2px}
+  .card{background:linear-gradient(180deg,rgba(255,255,255,.03),rgba(255,255,255,0)),var(--card);
+    border:1px solid var(--line);border-radius:var(--r);padding:18px 20px}
+  .grid{display:grid;gap:14px}
+  .g2{grid-template-columns:1fr 1fr}
+  .g3{grid-template-columns:repeat(3,1fr)}
+  .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+  select,textarea,input{width:100%;background:#0b1222;border:1px solid var(--line);
+    color:var(--txt);border-radius:10px;padding:10px 12px;font:inherit;font-size:14px}
+  textarea{min-height:120px;resize:vertical}
+  select{max-width:220px}
+  .btn{cursor:pointer;border:1px solid transparent;border-radius:10px;padding:9px 16px;
+    font:inherit;font-size:14px;background:#18233a;color:var(--txt)}
+  .btn:hover{filter:brightness(1.12)}
+  .btn.primary{background:var(--accent);color:#06202b;font-weight:650}
+  .btn.ghost{background:transparent;border-color:var(--line);color:var(--dim)}
+  .btn.small{padding:6px 11px;font-size:13px}
+  .kicker{font-size:12px;letter-spacing:.12em;text-transform:none;color:var(--dim);margin-bottom:8px}
+  .tag{display:inline-block;font-size:12px;color:var(--dim);border:1px solid var(--line);
+    border-radius:999px;padding:2px 9px;margin-right:6px}
+  .qbox{font-size:19px;font-weight:650;line-height:1.5;margin:6px 0 12px}
+  .timer{font-variant-numeric:tabular-nums;font-size:26px;font-weight:700;color:var(--accent)}
+  .timer.warn{color:var(--warn)}
+  .timer.bad{color:var(--bad)}
+  .probe{background:#0d1626;border:1px dashed #2a3a5c;border-radius:10px;padding:10px 12px;margin-top:10px}
+  .probe b{color:var(--accent2)}
+  .hint{color:var(--dim);font-size:13px}
+  .ok{color:var(--ok)} .bad{color:var(--bad)} .warn{color:var(--warn)}
+  .feat{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0}
+  .feat span{font-size:12px;padding:3px 10px;border-radius:999px;border:1px solid var(--line);color:var(--dim)}
+  .feat span.on{border-color:rgba(79,209,197,.5);color:var(--accent);background:rgba(79,209,197,.08)}
+  .bar{height:8px;border-radius:99px;background:#0b1222;border:1px solid var(--line);overflow:hidden}
+  .bar>i{display:block;height:100%;background:linear-gradient(90deg,var(--accent),var(--accent2))}
+  .stat{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+  .stat b{display:block;font-size:22px;font-variant-numeric:tabular-nums}
+  .stat span{color:var(--dim);font-size:12px}
+  .lv{display:flex;align-items:center;gap:10px;margin:10px 0}
+  .lv input[type=range]{accent-color:#4fd1c5;padding:0;background:transparent;border:0}
+  .lv .lb{width:52px;color:var(--dim);font-size:13px}
+  .lv .val{width:52px;text-align:right;font-variant-numeric:tabular-nums}
+  .story{font-size:14px;color:var(--dim)}
+  .hr{height:1px;background:var(--line);margin:16px 0}
+  .pill{font-size:12px;border:1px solid var(--line);border-radius:999px;padding:2px 9px;color:var(--dim)}
+  .pill.hot{border-color:rgba(246,173,85,.5);color:var(--warn)}
+  .mono{font-family:ui-monospace,Consolas,monospace;font-size:13px}
+  .hide{display:none!important}
+  details summary{cursor:pointer;color:var(--dim);font-size:14px}
+  @media(max-width:820px){.g2,.g3{grid-template-columns:1fr}.wrap{padding:18px 14px 60px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="top">
+    <div class="logo">MI</div>
+    <div>
+      <h1>模拟面试官 <span class="pill">本地 · 不用 LLM</span></h1>
+      <div class="sub">按你简历里的项目追问；每题 90 秒；回答完立刻指出缺了什么。</div>
+    </div>
+  </header>
+
+  <!-- 开始面板 -->
+  <section id="startPanel" class="card">
+    <div class="kicker">第一步 · 选方向</div>
+    <div class="row">
+      <select id="track">
+        <option value="校招">校招 / 实习（AI 产品）</option>
+        <option value="社招">社招 / 转岗（AI 产品）</option>
+        <option value="RAG">RAG 专项（项目深挖）</option>
+      </select>
+      <button class="btn primary" id="startBtn">开始一轮（5 题）</button>
+      <span class="hint">题库 <b id="bankCount">0</b> 题 · 每轮随机 5 题，含 1 道行为题</span>
+    </div>
+    <div class="hr"></div>
+    <details>
+      <summary>面试前先看题库（点开）</summary>
+      <div id="bankList" class="grid g2" style="margin-top:12px"></div>
+    </details>
+  </section>
+
+  <!-- 答题面板 -->
+  <section id="quizPanel" class="hide">
+    <div class="card">
+      <div class="row" style="justify-content:space-between">
+        <div class="row">
+          <span class="tag" id="qIdx">第 1 / 5 题</span>
+          <span class="tag" id="qCat">项目深挖</span>
+        </div>
+        <div class="row">
+          <span class="timer" id="timer">90s</span>
+          <button class="btn ghost small" id="skipBtn">跳过</button>
+        </div>
+      </div>
+      <div class="bar" style="margin:12px 0 16px"><i id="prog" style="width:0%"></i></div>
+      <div class="qbox" id="qText"></div>
+      <textarea id="answer" placeholder="先写关键词也行：背景 → 你做了什么 → 数字 → 取舍。"></textarea>
+      <div class="row" style="margin-top:10px">
+        <button class="btn primary" id="submitBtn">提交并追问</button>
+        <span class="hint" id="charHint">0 字</span>
+        <span class="hint" style="margin-left:auto">× 计时到 0 不会自动提交，自己按。</span>
+      </div>
+    </div>
+
+    <div id="feedback" class="hide">
+      <div class="card" style="margin-top:14px">
+        <div class="kicker">这段回答里，检测到 / 缺了</div>
+        <div class="feat" id="featRow"></div>
+        <div id="probeBox"></div>
+        <div class="hr"></div>
+        <div class="kicker">追问（选一个回答，或直接下一题）</div>
+        <textarea id="follow" style="min-height:86px" placeholder="用 45 秒回答追问；答不上来就写「不知道，我会先查 X」。"></textarea>
+        <div class="row" style="margin-top:10px">
+          <button class="btn primary" id="nextBtn">下一题 →</button>
+          <button class="btn ghost small" id="endBtn">提前结束，看报告</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 报告 -->
+  <section id="reportPanel" class="hide">
+    <div class="card">
+      <div class="kicker">本轮报告</div>
+      <div class="row" style="justify-content:space-between;align-items:flex-start">
+        <div>
+          <div class="qbox" id="verdict">—</div>
+          <div class="hint" id="verdictSub"></div>
+        </div>
+        <div class="stat" style="min-width:150px;text-align:center">
+          <b id="scoreBig">0<span style="font-size:14px;color:var(--dim)">/8</span></b>
+          <span>四维合计</span>
+        </div>
+      </div>
+      <div class="hr"></div>
+      <div class="kicker">四维自评（对着下面的证据打）</div>
+      <div id="lvBox"></div>
+      <div class="hr"></div>
+      <div class="kicker">最该补的三件事</div>
+      <div id="drills" class="grid"></div>
+      <div class="row" style="margin-top:16px">
+        <button class="btn primary" id="saveBtn">保存本轮</button>
+        <button class="btn ghost" id="mdBtn">导出 Markdown</button>
+        <button class="btn ghost" id="againBtn">再来一轮</button>
+      </div>
+    </div>
+    <div class="card" style="margin-top:14px">
+      <div class="kicker">本轮记录</div>
+      <div id="qaList"></div>
+    </div>
+  </section>
+
+  <!-- 历史 -->
+  <section class="card" style="margin-top:18px">
+    <div class="kicker">练习历史（本机）</div>
+    <div id="history" class="hint">还没有记录。练完一轮会出现在这里。</div>
+  </section>
+
+</div>
+
+<script>
+/* ================= 数据 ================= */
+const BANK = [
+  // 行为 / 通用
+  {id:"b1", tracks:["校招","社招"], cat:"行为", q:"用 90 秒介绍你最有把握的一个项目：问题是什么、你做了什么、结果多少。",
+   want:["数字","取舍"],
+   probes:[
+     {miss:"数字", ask:"你说了「效果不错」，但没给基线。改前多少、改后多少、样本多大？"},
+     {miss:"取舍", ask:"这个方案你放弃了什么？为什么不是另一个做法？"}],
+   drill:"把项目压成「背景一句 + 动作两句 + 数字一句 + 取舍一句」，录音回听。"},
+  {id:"b2", tracks:["校招","社招"], cat:"行为", q:"讲一次你和别人意见不一致、最后推动下去的经历。你具体做了什么？",
+   want:["结构","边界"],
+   probes:[
+     {miss:"结构", ask:"冲突点是什么、你的依据是什么、最后怎么定的？按这三步重讲。"},
+     {miss:"边界", ask:"如果对方坚持不改，你的备选方案是什么？"}],
+   drill:"准备一个「分歧 → 依据 → 试验 → 结论」的四段故事。"},
+  {id:"b3", tracks:["校招"], cat:"行为", q:"你为什么想做 AI 产品经理？说一个让你改变判断的具体事件。",
+   want:["结构","边界"],
+   probes:[
+     {miss:"结构", ask:"事件 → 你原来的判断 → 新判断 → 你做了什么，按顺序讲。"},
+     {miss:"边界", ask:"如果 AI 产品只是短期热度，你的职业计划会怎么变？"}],
+   drill:"不要讲「我喜欢 AI」，讲一个你做过的决定被数据推翻的瞬间。"},
+  {id:"b4", tracks:["社招"], cat:"行为", q:"讲一个你从 0 到 1 推动的项目：谁反对、你怎么拿到资源、最后指标如何。",
+   want:["数字","取舍"],
+   probes:[
+     {miss:"数字", ask:"资源投入多少（人周/预算）？换来什么指标？ROI 怎么算的？"},
+     {miss:"取舍", ask:"如果只能保留一个功能，你砍哪个？为什么？"}],
+   drill:"准备一页「立项—反对—试验—复盘」的 0→1 故事，带 ROI。"},
+
+  // RAG / 技术
+  {id:"r1", tracks:["RAG","校招","社招"], cat:"RAG", q:"你的 RAG 项目里，chunk 大小怎么定的？依据是什么？",
+   want:["数字","取舍"],
+   probes:[
+     {miss:"数字", ask:"你试了哪几组？hit@3 和覆盖各是多少？"},
+     {miss:"取舍", ask:"chunk 更大时，引用会变粗、成本会变高，你怎么权衡？"}],
+   drill:"把 240/360/520 三组数字背下来，并说清「为什么不是更大」。"},
+  {id:"r2", tracks:["RAG","社招"], cat:"RAG", q:"召回率上不去，你会按什么顺序排查？",
+   want:["结构","边界"],
+   probes:[
+     {miss:"结构", ask:"按「数据 → 切分 → 检索 → 重排 → 生成」排个序，每步给一个检查动作。"},
+     {miss:"边界", ask:"如果排查完发现是语料本身没有答案，你怎么处理？"}],
+   drill:"准备一条排查链：先看数据在不在，再看切分丢没丢，最后才是模型。"},
+  {id:"r3", tracks:["RAG","校招","社招"], cat:"评测", q:"你的 30 条评测集怎么来的？谁判对错？判错了怎么办？",
+   want:["数字","边界"],
+   probes:[
+     {miss:"数字", ask:"30 条里多少可答、多少应拒答？通过率多少？"},
+     {miss:"边界", ask:"同一条两个人判出不同结果，你信谁？怎么校准？"}],
+   drill:"写一页标注规范：什么算对、什么算部分对、什么算拒答正确。"},
+  {id:"r4", tracks:["RAG","校招"], cat:"评测", q:"拒答阈值你怎么定的？定高了会怎样、定低了会怎样？",
+   want:["数字","取舍"],
+   probes:[
+     {miss:"数字", ask:"阈值多少？8 条域外样本的拒答率多少？有没有误拒？"},
+     {miss:"取舍", ask:"误拒和幻觉，你更怕哪个？为什么？"}],
+   drill:"用「域闸门 + 分数阈值」两层讲，并给出误拒的代价。"},
+  {id:"r5", tracks:["RAG","社招"], cat:"评测", q:"怎么证明你的优化真的有效，而不是评测集过拟合？",
+   want:["数字","边界"],
+   probes:[
+     {miss:"数字", ask:"你的对照组是什么？两组差多少？样本够不够？"},
+     {miss:"边界", ask:"换一批没见过的文档，你预期会掉多少？"}],
+   drill:"准备「留出集 + 一次真实盲测」的方案，哪怕只做了 10 条。"},
+  {id:"r6", tracks:["RAG","社招"], cat:"RAG", q:"没有 LLM 可用时，你怎么做一个能演示的 RAG 产品？",
+   want:["取舍","边界"],
+   probes:[
+     {miss:"取舍", ask:"抽取式回答牺牲了什么？你怎么让面试官相信这不是偷懒？"},
+     {miss:"边界", ask:"如果明天给你一个 API key，你改哪一段？预计提升多少？"}],
+   drill:"把「检索 → 上下文 → 生成」的接口切开讲，强调可替换。"},
+
+  // 产品
+  {id:"p1", tracks:["校招","社招"], cat:"产品", q:"一个需求上线后核心指标掉了 10%，你怎么查？",
+   want:["结构","数字"],
+   probes:[
+     {miss:"结构", ask:"先分「数据问题 / 功能问题 / 外部因素」，每类给一个检查动作。"},
+     {miss:"数字", ask:"你怎么判断 10% 是噪声还是真跌？看什么分布？"}],
+   drill:"准备「先证伪数据，再拆漏斗，最后看外部」的三步。"},
+  {id:"p2", tracks:["社招"], cat:"产品", q:"怎么判断一个 AI 功能值不值得做？说你的判断框架。",
+   want:["取舍","边界"],
+   probes:[
+     {miss:"取舍", ask:"你说「有价值」，那放弃的是哪个需求？机会成本是多少？"},
+     {miss:"边界", ask:"上线后如果只有 5% 用户用，你什么时候砍掉它？"}],
+   drill:"用「场景频率 × 错误代价 × 可验证性」三问做取舍。"},
+  {id:"p3", tracks:["校招","社招"], cat:"产品", q:"你怎么向非技术同学解释「为什么模型会胡说」？",
+   want:["结构","边界"],
+   probes:[
+     {miss:"结构", ask:"用一个比喻讲清：检索不到 / 检索到但不该用 / 生成本身编。"},
+     {miss:"边界", ask:"讲完之后，你希望对方做一个什么决定？"}],
+   drill:"准备一个 40 秒版本，结尾落到「所以要加引用和拒答」。"}
+];
+
+const DIMS = [
+  {k:"structure", n:"结构", d:"有没有「背景→动作→结果」的顺序"},
+  {k:"digits", n:"数字", d:"基线、变化、样本量至少给一个"},
+  {k:"tradeoff", n:"取舍", d:"说清放弃了什么、为什么不是另一条路"},
+  {k:"boundary", n:"边界", d:"知道哪里会失败、怎么提前发现"}
+];
+
+const KEY = "mi-coach-v1";
+const $ = s => document.querySelector(s);
+const uid = () => Math.random().toString(36).slice(2, 9);
+const today = () => new Date().toISOString().slice(0, 10);
+
+let S = load();
+let R = null;           // 本轮
+let timerId = null, left = 90, running = false;
+
+function load(){
+  try{
+    const raw = localStorage.getItem(KEY);
+    if (raw) return JSON.parse(raw);
+  }catch(e){}
+  return {history: []};
+}
+function save(){ try{ localStorage.setItem(KEY, JSON.stringify(S)); }catch(e){} }
+function esc(s){ return String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])); }
+
+/* ================= 分析 ================= */
+function feats(t){
+  const len = (t || "").length;
+  return {
+    len,
+    structure: /(首先|其次|最后|第一|第二|第三|背景|动作|结果|因为.*所以|先.*再.*然后)/.test(t) && len >= 25,
+    digits: /(\d+(\.\d+)?\s*(%|ms|毫秒|条|份|人|个|天|周|倍)|\d{2,}|百分之)/.test(t),
+    tradeoff: /(取舍|权衡|放弃|代价|而不是|宁可|牺牲|砍掉|不做)/.test(t),
+    boundary: /(失败|风险|局限|不知道|没做|边界|反例|如果.*(没|不)|误拒|幻觉)/.test(t)
+  };
+}
+function probeFor(miss, q){
+  const p = (q.probes || []).find(x => x.miss === miss);
+  if (p) return p.ask;
+  return {
+    digits: "给一个数字：基线多少、改后多少、样本多大？",
+    tradeoff: "你放弃了什么？为什么不是另一个做法？",
+    structure: "用 30 秒重讲：问题 → 动作 → 结果。",
+    boundary: "这个方案最可能死在哪一步？你怎么提前知道？"
+  }[miss];
+}
+
+/* ================= 开始一轮 ================= */
+function buildQueue(track){
+  const pool = BANK.filter(q => q.tracks.includes(track));
+  // 行为题保证 1 道
+  const behave = pool.filter(q => q.cat === "行为");
+  const others = pool.filter(q => q.cat !== "行为");
+  const pick = arr => arr[Math.floor(Math.random() * arr.length)];
+  const qs = [];
+  if (behave.length) qs.push(pick(behave));
+  const copy = others.slice();
+  while (qs.length < 5 && copy.length){
+    qs.push(copy.splice(Math.floor(Math.random() * copy.length), 1)[0]);
+  }
+  return qs.slice(0, 5);
+}
+
+function start(){
+  const track = $("#track").value;
+  R = {id: uid(), date: today(), track, queue: buildQueue(track), idx: 0, answers: [], done: false};
+  $("#startPanel").classList.add("hide");
+  $("#reportPanel").classList.add("hide");
+  $("#quizPanel").classList.remove("hide");
+  renderQ();
+}
+
+function renderQ(){
+  const q = R.queue[R.idx];
+  $("#qIdx").textContent = `第 ${R.idx + 1} / ${R.queue.length} 题`;
+  $("#qCat").textContent = q.cat;
+  $("#qText").textContent = q.q;
+  $("#answer").value = "";
+  $("#charHint").textContent = "0 字";
+  $("#feedback").classList.add("hide");
+  $("#prog").style.width = `${(R.idx / R.queue.length) * 100}%`;
+  left = 90; renderTimer(); stopTimer(); startTimer();
+  $("#answer").focus();
+}
+
+function startTimer(){
+  stopTimer();
+  running = true;
+  timerId = setInterval(() => {
+    if (!running) return;
+    left--;
+    renderTimer();
+    if (left <= 0) stopTimer();
+  }, 1000);
+}
+function stopTimer(){ running = false; if (timerId) clearInterval(timerId); timerId = null; }
+function renderTimer(){
+  const el = $("#timer");
+  el.textContent = left + "s";
+  el.classList.toggle("warn", left <= 30 && left > 10);
+  el.classList.toggle("bad", left <= 10);
+}
+
+function submit(){
+  const q = R.queue[R.idx];
+  const text = $("#answer").value.trim();
+  const f = feats(text);
+  stopTimer();
+
+  const missing = [];
+  if (!f.digits) missing.push("digits");
+  if (!f.tradeoff) missing.push("tradeoff");
+  if (!f.structure) missing.push("structure");
+  if (!f.boundary) missing.push("boundary");
+
+  const probes = missing.slice(0, 2).map(m => probeFor(m, q));
+
+  R.answers.push({q, text, f, probes, follow: "", self: {}});
+
+  // 渲染检测结果
+  const labels = {structure:"结构", digits:"数字", tradeoff:"取舍", boundary:"边界"};
+  $("#featRow").innerHTML = DIMS.map(d =>
+    `<span class="${f[d.k] ? "on" : ""}">${f[d.k] ? "✓" : "✕"} ${d.n}</span>`
+  ).join("");
+
+  $("#probeBox").innerHTML = probes.length
+    ? probes.map((p, i) => `<div class="probe"><b>追问 ${i + 1}：</b>${esc(p)}</div>`).join("")
+    : `<div class="probe">四项都占了。下一个问题：如果重做一次，你会先改哪一步？为什么不是另一步？</div>`;
+
+  $("#feedback").classList.remove("hide");
+  $("#follow").value = "";
+  $("#follow").focus();
+}
+
+function next(){
+  const a = R.answers[R.answers.length - 1];
+  if (a) a.follow = $("#follow").value.trim();
+  if (R.idx + 1 >= R.queue.length) return finish();
+  R.idx++;
+  renderQ();
+}
+
+/* ================= 报告 ================= */
+function finish(){
+  stopTimer();
+  const a = R.answers[R.answers.length - 1];
+  if (a && !a.follow) a.follow = $("#follow").value.trim();
+  R.done = true;
+  $("#quizPanel").classList.add("hide");
+  $("#reportPanel").classList.remove("hide");
+
+  // 自评 slider
+  $("#lvBox").innerHTML = DIMS.map(d => `
+    <div class="lv">
+      <div class="lb">${d.n}</div>
+      <input type="range" min="0" max="2" step="1" value="${autoScore(d.k)}" data-dim="${d.k}" />
+      <div class="val" data-v="${d.k}">${autoScore(d.k)}</div>
+    </div>
+    <div class="hint" style="margin:-4px 0 8px 62px">${d.d}</div>
+  `).join("");
+
+  $("#lvBox").querySelectorAll("input[type=range]").forEach(r => {
+    r.oninput = () => {
+      $("#lvBox").querySelector(`[data-v="${r.dataset.dim}"]`).textContent = r.value;
+      paintScore();
+    };
+  });
+
+  // 建议
+  const weak = DIMS.filter(d => autoScore(d.k) === 0).map(d => d.n);
+  const drills = [];
+  R.answers.forEach(a => {
+    const miss = DIMS.filter(d => !a.f[a.k]);
+    if (miss.length >= 2 && a.q.drill && !drills.includes(a.q.drill)) drills.push(a.q.drill);
+  });
+  if (!drills.length) drills.push("四维都不错：把今天的答案录下来，明天用 60 秒重讲一遍。");
+
+  $("#drills").innerHTML = drills.slice(0, 3).map((t, i) =>
+    `<div class="card" style="padding:12px 14px"><span class="pill hot">${i + 1}</span> <span style="font-size:14px">${esc(t)}</span></div>`
+  ).join("");
+
+  paintScore();
+  renderQA();
+}
+
+function autoScore(k){
+  // 用全部回答里该维度的命中率映射到 0–2
+  if (!R || !R.answers.length) return 0;
+  const hit = R.answers.filter(a => a.f[k]).length;
+  const ratio = hit / R.answers.length;
+  if (ratio >= 0.8) return 2;
+  if (ratio >= 0.4) return 1;
+  return 0;
+}
+
+function paintScore(){
+  const vals = [...$("#lvBox").querySelectorAll("input[type=range]")].map(r => +r.value);
+  const total = vals.reduce((a, b) => a + b, 0);
+  $("#scoreBig").innerHTML = `${total}<span style="font-size:14px;color:var(--dim)">/8</span>`;
+  const v = total <= 3 ? "还要再练：先补结构和数字" : total <= 6 ? "及格：能讲，但还不够稳" : "可以上场：保持这个状态";
+  $("#verdict").textContent = v;
+  $("#verdictSub").textContent = `本轮 ${R.answers.length} 题 · 方向 ${R.track} · ${R.date}`;
+}
+
+function renderQA(){
+  $("#qaList").innerHTML = R.answers.map((a, i) => `
+    <div style="border-bottom:1px solid var(--line);padding:12px 0">
+      <div class="hint">Q${i + 1} · ${esc(a.q.cat)}</div>
+      <div style="font-weight:600;margin:2px 0 6px">${esc(a.q.q)}</div>
+      <div class="story" style="white-space:pre-wrap">${esc(a.text) || "（未作答）"}</div>
+      ${a.follow ? `<div class="hint" style="margin-top:6px">追问回答：${esc(a.follow)}</div>` : ""}
+    </div>`).join("");
+}
+
+/* ================= 保存 / 导出 ================= */
+function saveRound(){
+  const vals = [...$("#lvBox").querySelectorAll("input[type=range]")].map(r => +r.value);
+  const total = vals.reduce((a, b) => a + b, 0);
+  const weak = DIMS.filter((d, i) => vals[i] <= 1).map(d => d.n);
+  S.history.unshift({date: R.date, track: R.track, total, weak, n: R.answers.length});
+  S.history = S.history.slice(0, 12);
+  save(); renderHistory();
+  toast("已保存到本机");
+}
+
+function toMarkdown(){
+  const vals = [...$("#lvBox").querySelectorAll("input[type=range]")].map(r => +r.value);
+  const total = vals.reduce((a, b) => a + b, 0);
+  const lines = [`# 模拟面试记录 · ${R.date}`, `方向：${R.track} · 题目：${R.answers.length} · 四维：${total}/8`, ""];
+  R.answers.forEach((a, i) => {
+    const hit = DIMS.filter(d => a.f[d.k]).map(d => d.n).join("、") || "—";
+    lines.push(`## Q${i + 1}（${a.q.cat}）${a.q.q}`);
+    lines.push(`回答：${a.text || "（未作答）"}`);
+    lines.push(`命中：${hit}`);
+    if (a.follow) lines.push(`追问回答：${a.follow}`);
+    lines.push("");
+  });
+  lines.push("## 四维自评");
+  DIMS.forEach((d, i) => lines.push(`- ${d.n}：${vals[i]}/2`));
+  return lines.join("\n");
+}
+function exportMd(){
+  const blob = new Blob([toMarkdown()], {type: "text/markdown;charset=utf-8"});
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = `面试记录-${R.date}.md`;
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+function toast(msg){
+  const t = document.createElement("div");
+  t.textContent = msg;
+  t.style.cssText = "position:fixed;left:50%;bottom:28px;transform:translateX(-50%);background:#18233a;border:1px solid #2a3a5c;color:#e6edf7;padding:10px 16px;border-radius:10px;z-index:99";
+  document.body.appendChild(t);
+  setTimeout(() => t.remove(), 1800);
+}
+
+function renderHistory(){
+  if (!S.history.length){ $("#history").textContent = "还没有记录。练完一轮会出现在这里。"; return; }
+  $("#history").innerHTML = S.history.map(h =>
+    `<div class="row" style="justify-content:space-between;border-bottom:1px solid var(--line);padding:8px 0">
+      <span>${h.date} · ${h.track} · ${h.n} 题</span>
+      <span><b>${h.total}/8</b> <span class="hint">弱项：${h.weak.join("、") || "—"}</span></span>
+    </div>`).join("");
+}
+
+/* ================= 事件 ================= */
+$("#startBtn").onclick = start;
+$("#submitBtn").onclick = submit;
+$("#nextBtn").onclick = next;
+$("#endBtn").onclick = () => {
+  const a = R.answers[R.answers.length - 1];
+  if (a) a.follow = $("#follow").value.trim();
+  finish();
+};
+$("#saveBtn").onclick = saveRound;
+$("#mdBtn").onclick = exportMd;
+$("#againBtn").onclick = () => {
+  $("#reportPanel").classList.add("hide");
+  $("#startPanel").classList.remove("hide");
+};
+$("#skipBtn").onclick = () => {
+  if (R.idx + 1 >= R.queue.length) return finish();
+  R.answers.push({q: R.queue[R.idx], text: "", f: feats(""), probes: [], follow: "", self: {}});
+  R.idx++; renderQ();
+};
+$("#answer").addEventListener("input", e => {
+  $("#charHint").textContent = e.target.value.length + " 字";
+});
+document.addEventListener("keydown", e => {
+  if ((e.ctrlKey || e.metaKey) && e.key === "Enter"){
+    if (!$("#quizPanel").classList.contains("hide") && $("#feedback").classList.contains("hide")) submit();
+  }
+});
+
+
+/* ================= 自测 / 演示（?selftest=1 / ?demo=1） ================= */
+function selftest(){
+  const T = [];
+  const ok = (n, v) => T.push([n, !!v]);
+  ok("题库 >= 12 题", BANK.length >= 12);
+  ok("每题都有 drill", BANK.every(q => q.drill));
+  ok("每题都有 probes", BANK.every(q => q.probes && q.probes.length));
+  ok("feats 识别数字", feats("准确率从 61% 提到 78%，30 条样本").digits);
+  ok("feats 识别取舍", feats("我放弃了向量检索，因为成本更高").tradeoff);
+  ok("feats 识别结构", feats("首先做语料清洗，其次做切分，最后跑评测，结果是 95%").structure);
+  ok("feats 识别边界", feats("这个方案的风险是误拒，最可能失败在阈值").boundary);
+  ok("队列 5 题", buildQueue("校招").length === 5);
+  ok("队列含行为题", buildQueue("校招").some(q => q.cat === "行为"));
+  ok("队列不重复", new Set(buildQueue("RAG").map(q => q.id)).size === 5);
+  ok("空回答触发追问", (() => { const f = feats(""); return !f.digits && !f.tradeoff; })());
+  ok("probeFor 有兜底", !!probeFor("digits", {probes: []}));
+  const pass = T.filter(x => x[1]).length;
+  document.body.innerHTML = `<div class="wrap"><h1>自测 ${pass}/${T.length}</h1><div class="card">${
+    T.map(x => `<div class="${x[1] ? "ok" : "bad"}">${x[1] ? "✓" : "✗"} ${x[0]}</div>`).join("")
+  }</div></div>`;
+}
+
+function demo(){
+  $("#track").value = "校招";
+  start();
+  const answers = [
+    "我做了知识库问答，先抓 11 篇文档，切 520 字，BM25 检索，跑 30 条评测，hit@3 从 81.8% 提到 95.5%。我放弃了向量库，因为本机没有 embedding 服务。",
+    "当时和同学对要不要做拒答有分歧，我先列了 8 条域外问题做实验，结果误答率很高，最后用域闸门加阈值，拒答率 100%。",
+    "因为实习时发现评测最缺人。我自己建了评测集，才发现很多回答看着对其实是错的。",
+    "我把语料从 3 篇扩到 11 篇，又加了 rerank，覆盖从 77.3% 到 81.8%，代价是延迟多了 1 毫秒。",
+    "如果失败，最可能是评测集自己编的，和真实问题脱节；我会先找 3 个真人问 5 个问题。"
+  ];
+  let i = 0;
+  const step = () => {
+    if (i >= 5) { finish(); return; }
+    $("#answer").value = answers[i];
+    submit();
+    i++;
+    next();
+    setTimeout(step, 30);
+  };
+  setTimeout(step, 30);
+}
+
+/* ================= 初始化 ================= */
+$("#bankCount").textContent = BANK.length;
+$("#bankList").innerHTML = BANK.map(q => `
+  <div class="card" style="padding:12px 14px">
+    <div class="hint">${esc(q.cat)} · ${q.tracks.join("/")}</div>
+    <div style="font-size:14px;margin-top:4px">${esc(q.q)}</div>
+  </div>`).join("");
+renderHistory();
+if (location.search.includes("selftest")) selftest();
+if (location.search.includes("demo")) demo();
+if (location.search.includes("preview")) {
+  $("#track").value = "RAG"; start();
+  if (location.search.includes("ans")) setTimeout(() => {
+    $("#answer").value = "我先抓了 11 篇文档，切 520 字，跑 30 条评测，hit@3 从 81.8% 提到 95.5%；放弃了向量库，因为本机没有 embedding 服务。最大的风险是评测集自己编的。";
+    submit();
+  }, 400);
+}
+</script>
+</body>
+</html>
